@@ -21,7 +21,7 @@ module.exports = {
 
   async execute(interaction) {
     const amt = interaction.options.getInteger('posts'); // Gets the amount of images wanted
-    const tags = interaction.options.getString('tags') || ''; // Gets tags if wanted
+    let tags = interaction.options.getString('tags') || ''; // Gets tags if wanted
 
     if (amt < 1 || amt > 320) {
       return interaction.reply({
@@ -33,7 +33,7 @@ module.exports = {
     await interaction.deferReply();
 
     try {
-      const query = encodeURIComponent(tags);
+      const query = encodeURIComponent(tags).replace(/%20/g, '+');
       const { data } = await axios.get(`https://e621.net/posts.json?tags=order:random+${query}&limit=${amt}`, {
         auth: {
           username: 'fbowo',
@@ -45,10 +45,10 @@ module.exports = {
       });
 
       if (!data.posts || data.posts.length === 0) {
-        return interaction.editReply('tag is probably wrong qwq');
+        return interaction.editReply(`tag is probably wrong qwq + ${query}`);
       }
 
-	  //embeds bcs idk it makes it look nicer
+      // Generate embeds for images
       const embeds = data.posts
         .filter(post => post.file?.url)
         .slice(0, amt)
@@ -63,20 +63,26 @@ module.exports = {
         return interaction.editReply('no image :c');
       }
 
-      // Send initial embeds and delete them
-      await interaction.editReply({ embeds: embeds.slice(0, 10) });
+      const batchSize = 10;
+      let startIndex = 0;
+
+      // Send initial embeds
+      await interaction.editReply({ embeds: embeds.slice(0, batchSize) });
       setTimeout(() => interaction.deleteReply(), 1200000); // Delete after 20 mins
 
-      const batchSize = 10;
-      for (let i = 10; i < embeds.length; i += batchSize) {
-        const batch = embeds.slice(i, i + batchSize);
+      // Send subsequent batches
+      while (startIndex + batchSize < embeds.length) {
+        const batch = embeds.slice(startIndex, startIndex + batchSize);
         const followUp = await interaction.followUp({ embeds: batch });
-        setTimeout(() => followUp.delete(), 1200000); // Delete follow-up after 30 seconds
+        setTimeout(() => followUp.delete(), 0);
+        startIndex += batchSize;
+
+        // Small delay to prevent rate-limiting
         await new Promise(res => setTimeout(res, 50));
       }
 
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching data:', err);
       await interaction.editReply('messed up like whats happening with you slut <3');
     }
   },
