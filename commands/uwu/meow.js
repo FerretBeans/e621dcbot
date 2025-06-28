@@ -68,7 +68,7 @@ module.exports = {
 
       // Send initial embeds
       await interaction.editReply({ embeds: embeds.slice(0, batchSize) });
-      setTimeout(() => interaction.deleteReply(), 1200000); // Delete after 20 mins
+      setTimeout(() => interaction.deleteReply(), 600000); // Delete after 20 mins
 
       // Send subsequent batches
       while (startIndex + batchSize < embeds.length) {
