@@ -20,9 +20,14 @@ module.exports = {
   data: uwu,
 
   async execute(interaction) {
+    //gets disp name bcs disp name better <3
+    const user = interaction.user;
+    const name = user.globalName ?? user.username;
+
     const amt = interaction.options.getInteger('posts'); // Gets the amount of images wanted
     let tags = interaction.options.getString('tags') || ''; // Gets tags if wanted
 
+    //e6 only supports 320 so yeah
     if (amt < 1 || amt > 320) {
       return interaction.reply({
         content: 'max is 320',
@@ -32,6 +37,7 @@ module.exports = {
 
     await interaction.deferReply();
 
+    //get request for the list + randomise
     try {
       const query = encodeURIComponent(tags).replace(/%20/g, '+');
       const { data } = await axios.get(`https://e621.net/posts.json?tags=order:random+${query}&limit=${amt}`, {
@@ -44,6 +50,7 @@ module.exports = {
         }
       });
 
+      //tell you that ur wrong :3
       if (!data.posts || data.posts.length === 0) {
         return interaction.editReply(`tag is probably wrong qwq + ${query}`);
       }
@@ -59,28 +66,30 @@ module.exports = {
           .setColor(0xff66cc)
         );
 
+      //idr
       if (embeds.length === 0) {
         return interaction.editReply('no image :c');
       }
 
+      //sends images in batchs of 10 and deletes them after like 10 mins
       const batchSize = 10;
       let startIndex = 0;
 
-      // Send initial embeds
+      // Send first 10 embeds
       await interaction.editReply({ embeds: embeds.slice(0, batchSize) });
       setTimeout(() => interaction.deleteReply(), 600000); // Delete after 20 mins
 
-      // Send subsequent batches
+      // Send rest of batches
       while (startIndex + batchSize < embeds.length) {
         const batch = embeds.slice(startIndex, startIndex + batchSize);
         const followUp = await interaction.followUp({ embeds: batch });
-        setTimeout(() => followUp.delete(), 0);
+        setTimeout(() => followUp.delete(), 600000);
         startIndex += batchSize;
 
-        // Small delay to prevent rate-limiting
-        await new Promise(res => setTimeout(res, 50));
+        //delay
+        await new Promise(res => setTimeout(res, 250));
       }
-
+      console.log(name + " requested " + amt + " post(s) with these tags: " + query.replace(/%20/g, '+'));
     } catch (err) {
       console.error('Error fetching data:', err);
       await interaction.editReply('messed up like whats happening with you slut <3');
